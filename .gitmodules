@@ -1,0 +1,7 @@
+[submodule "jeelib"]
+	path = libraries/jeelib
+	url = https://github.com/jcw/jeelib
+	branch = rf12mods
+[submodule "wirelessweather"]
+	path = libraries/wirelessweather
+	url = https://github.com/SevenW/wirelessweather 
