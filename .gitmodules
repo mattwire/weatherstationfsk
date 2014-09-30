@@ -5,9 +5,9 @@
 [submodule "wirelessweather"]
 	path = libraries/wirelessweather
 	url = https://github.com/SevenW/wirelessweather
-[submodule "Time"]
-	path = libraries/Time
-	url = https://github.com/PaulStoffregen/Time
 [submodule "DHT-sensor-library"]
 	path = libraries/DHTSensorlibrary
 	url = https://github.com/adafruit/DHT-sensor-library 
+[submodule "libraries/Time"]
+	path = libraries/Time
+	url = https://github.com/PaulStoffregen/Time
