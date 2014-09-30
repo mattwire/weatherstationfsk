@@ -11,6 +11,12 @@
 
 /// BMP085 sensor connected to jeenode port 2 pins2..5: SDA, GND, 3.3V, SCL
 
+/// Readings: DHT,<Temp C>,<Humidity>.<Heat Index ( http://en.wikipedia.org/wiki/Heat_index )
+///           BMP,<Temp C>,<Pressure P>
+///           NRS,<Address>,<UnitCode>,<Cmd:on/off/dim>,<Dimlevel>,<Period>
+///           WS4,<ID>,<Temp C>,<rel Humidity>,<Wind Velocity>,<Wind Max>,<Wind dir>,<Rain>
+///           DCF,<DCF Time>
+
 #include <JeeLib.h>
 #include <RF12.h>
 #include <Time.h>
@@ -295,9 +301,9 @@ void loop() {
 
 #ifdef LOGDAT
       if (bmpValid) {
-        Serial.print("BMP T=");
+        Serial.print("BMP,");
         Serial.print((double)payload.temp/10);
-        Serial.print(" P=");
+        Serial.print(",");
         Serial.print((double)payload.pres/100);
         Serial.println();
       }
@@ -305,45 +311,46 @@ void loop() {
 
       float h = dht.readHumidity();
       float t = dht.readTemperature();
-      Serial.print("DHT T= ");
+      float hi = dht.convertFtoC(dht.computeHeatIndex(dht.convertCtoF(t),h));
+      Serial.print("DHT,");
       Serial.print(t);
-      Serial.print(" H=");
+      Serial.print(",");
       Serial.print(h);
+      Serial.print(",");
+      Serial.print(hi);
       Serial.println();
     }
 }
 
 // Callback function is called only when a valid code is received.
 void showCode(NewRemoteCode receivedCode) {
-  Serial.print("NRS A=");
+  Serial.print("NRS,");
   Serial.print(receivedCode.address);
 
   if (receivedCode.groupBit) {
-    Serial.print(" U=G");
+    Serial.print("G,");
   } 
   else {
-    Serial.print(" U=");
     Serial.print(receivedCode.unit);
+    Serial.print(",");
   }
 
   switch (receivedCode.switchType) {
     case NewRemoteCode::off:
-      Serial.print(" C=off");
+      Serial.print("off,");
       break;
     case NewRemoteCode::on:
-      Serial.print(" C=on");
+      Serial.print("on,");
       break;
     case NewRemoteCode::dim:
-      Serial.print(" C=dim");
+      Serial.print("dim,");
       break;
   }
 
   if (receivedCode.dimLevelPresent) {
-    Serial.print(" D=");
     Serial.print(receivedCode.dimLevel);
   }
-
-  Serial.print(" P=");
+  Serial.print(",");
   Serial.print(receivedCode.period);
   Serial.println();
 }
@@ -401,7 +408,7 @@ int BCD2bin(uint8_t BCD) {
 
 void update_time(uint8_t* tbuf) {
   setTime(BCD2bin(tbuf[2] & 0x3F),BCD2bin(tbuf[3]),BCD2bin(tbuf[4]),BCD2bin(tbuf[7]),BCD2bin(tbuf[6] & 0x1F),BCD2bin(tbuf[5]));
-  Serial.print("DCF ");
+  Serial.print("DCF,");
   timestamp();
   Serial.println();
 }
@@ -435,7 +442,7 @@ char* formatDouble( double val, byte precision, char* ascii, uint8_t ascii_len){
 }
 
 void decodeSensorData(uint8_t fmt, uint8_t* sbuf) {
-    char *compass[] = {"N  ", "NNE", "NE ", "ENE", "E  ", "ESE", "SE ", "SSE", "S  ", "SSW", "SW ", "WSW", "W  ", "WNW", "NW ", "NNW"};
+    char *compass[] = {"N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"};
     uint8_t windbearing = 0;
     // station id
     uint8_t stationid = (sbuf[0] << 4) | (sbuf[1] >>4);
@@ -469,19 +476,19 @@ void decodeSensorData(uint8_t fmt, uint8_t* sbuf) {
     char str[110];
     str[0] = 0;
     if (fmt == MSG_WS4000) {
-      Serial.print("WS4 ID=");
+      Serial.print("WS4,");
       Serial.print(stationid);
-      Serial.print(" T=");
+      Serial.print(",");
       Serial.print(temperature);
-      Serial.print(" relH=");
+      Serial.print(",");
       Serial.print(humidity);
-      Serial.print(" Wvel=");
+      Serial.print(",");
       Serial.print(windspeed);
-      Serial.print(" Wmax=");
+      Serial.print(",");
       Serial.print(windgust);
-      Serial.print(" Wdir=");
+      Serial.print(",");
       Serial.print(compass[windbearing]);
-      Serial.print(" Rain=");
+      Serial.print(",");
       Serial.println(rstr);
       /*snprintf(str,sizeof(str),"WS4 ID=%2X T=%5s relH=%3d Wvel=%5s Wmax=%5s Wdir=%3s Rain=%6s",
               stationid,
