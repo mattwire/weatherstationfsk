@@ -8,3 +8,6 @@
 [submodule "libraries/Time"]
 	path = libraries/Time
 	url = https://github.com/PaulStoffregen/Time
+[submodule "libraries/DHTsensorlibrary"]
+	path = libraries/DHTsensorlibrary
+	url = https://github.com/adafruit/DHT-sensor-library
