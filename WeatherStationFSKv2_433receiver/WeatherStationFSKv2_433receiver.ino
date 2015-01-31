@@ -11,10 +11,10 @@
 
 /// BMP085 sensor connected to jeenode port 2 pins2..5: SDA, GND, 3.3V, SCL
 
-/// Readings: DHT,<Temp C>,<Humidity>.<Heat Index ( http://en.wikipedia.org/wiki/Heat_index )
+/// Readings: DHT,<Temp C>,<Humidity>,<Heat Index> ( http://en.wikipedia.org/wiki/Heat_index )
 ///           BMP,<Temp C>,<Pressure P>
 ///           NRS,<Address>,<UnitCode>,<Cmd:on/off/dim>,<Dimlevel>,<Period>
-///           WS4,<ID>,<Temp C>,<rel Humidity>,<Wind Velocity>,<Wind Max>,<Wind dir>,<Rain>
+///           WS4,<ID>,<Temp C>,<rel Humidity>,<Wind Velocity>,<Wind Max>,<Wind compass>,<Wind bearing>,<Rain>
 ///           DCF,<DCF Time>
 
 #include <JeeLib.h>
@@ -413,37 +413,9 @@ void update_time(uint8_t* tbuf) {
   Serial.println();
 }
 
-char* formatDouble( double val, byte precision, char* ascii, uint8_t ascii_len){
-  // formats val with number of decimal places determine by precision
-  // precision is a number from 0 to 6 indicating the desired decimial places
-  
-  snprintf(ascii,ascii_len,"%d",int(val));
-  if( precision > 0) {
-    strcat(ascii,".");
-    unsigned long frac;
-    unsigned long mult = 1;
-    byte padding = precision -1;
-    while(precision--)
-       mult *=10;
-       
-    if(val >= 0)
-      frac = (val - int(val)) * mult;
-    else
-      frac = (int(val)- val ) * mult;
-    unsigned long frac1 = frac;
-    while( frac1 /= 10 )
-      padding--;
-    while(  padding--)
-      strcat(ascii,"0");
-    char str[7];
-    snprintf(str,sizeof(str),"%d",frac);
-    strcat(ascii,str);
-  }
-}
-
 void decodeSensorData(uint8_t fmt, uint8_t* sbuf) {
     char *compass[] = {"N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"};
-    uint8_t windbearing = 0;
+    uint8_t windcompass = 0;
     // station id
     uint8_t stationid = (sbuf[0] << 4) | (sbuf[1] >>4);
     // temperature
@@ -451,30 +423,23 @@ void decodeSensorData(uint8_t fmt, uint8_t* sbuf) {
     int16_t temp = ((sbuf[1] & 0x07) << 8) | sbuf[2];
     if (sign)
       temp = (~temp)+sign;
-    double temperature = temp * 0.1; 
+    double temperature = temp * 0.1; // Convert to C
     //humidity
-    uint8_t humidity = sbuf[3] & 0x7F;
+    uint8_t humidity = sbuf[3] & 0x7F; // %
     //wind speed
-    double windspeed = sbuf[4] * 0.34;
+    double windspeed = sbuf[4] * 0.34; // m/s
     //wind gust
-    double windgust = sbuf[5] * 0.34;
+    double windgust = sbuf[5] * 0.34; // m/s
     //rainfall
     double rain = (((sbuf[6] & 0x0F) << 8) | sbuf[7]) * 0.3;
+    
+    double windbearing = 0;
     if (fmt == MSG_WS4000) {
       //wind bearing
-      windbearing = sbuf[8] & 0x0F;
+      windcompass = sbuf[8] & 0x0F;
+      windbearing = windcompass * 22.5; // Convert 0-15 to degrees
     }
 
-    char tstr[6];
-    formatDouble(temperature, 1, tstr, sizeof(tstr));
-    char wsstr[6];
-    formatDouble(windspeed, 1, wsstr, sizeof(wsstr));
-    char wgstr[6];
-    formatDouble(windgust, 1, wgstr, sizeof(wgstr));
-    char rstr[7];
-    formatDouble(rain, 1, rstr, sizeof(rstr));
-    char str[110];
-    str[0] = 0;
     if (fmt == MSG_WS4000) {
       Serial.print("WS4,");
       Serial.print(stationid);
@@ -487,18 +452,11 @@ void decodeSensorData(uint8_t fmt, uint8_t* sbuf) {
       Serial.print(",");
       Serial.print(windgust);
       Serial.print(",");
-      Serial.print(compass[windbearing]);
+      Serial.print(compass[windcompass]);
       Serial.print(",");
-      Serial.println(rstr);
-      /*snprintf(str,sizeof(str),"WS4 ID=%2X T=%5s relH=%3d Wvel=%5s Wmax=%5s Wdir=%3s Rain=%6s",
-              stationid,
-              tstr,
-              humidity,
-              wsstr,
-              wgstr,
-              compass[windbearing],
-              rstr);*/
-              
+      Serial.print(windbearing);
+      Serial.print(",");
+      Serial.println(rain);
     }
     if (fmt == MSG_WS3000) {
       Serial.print("WS3 ID=");
@@ -512,14 +470,6 @@ void decodeSensorData(uint8_t fmt, uint8_t* sbuf) {
       Serial.print(" Wmax=");
       Serial.print(windgust);
       Serial.print(" Rain=");
-      Serial.println(rstr);
-      /*snprintf(str,sizeof(str),"ID: %2X, T=%5s`C, relH=%3d%%, Wvel=%5sm/s, Wmax=%5sm/s, Rain=%6smm",
-              stationid,
-              tstr,
-              humidity,
-              wsstr,
-              wgstr,
-              rstr);*/
+      Serial.println(rain);
     }
-    //Serial.println(str);
 }
