@@ -60,13 +60,6 @@ unsigned long currMillis;
 unsigned long prevMillis = 0;
 long interval = 5000;
 
-// Sensor averaging
-const int numReadings = 5;
-int16_t tempReadings[numReadings];
-int32_t presReadings[numReadings];
-int readingsIndex = 0;
-int32_t presTotal = 0;
-int16_t tempTotal = 0;
 boolean bmpValid = 0; // Set to 1 after 5 readings
 
 static void activityLed (byte on) {
@@ -148,12 +141,6 @@ static void do_tests() {
 void setup() {
     Serial.begin(SERIAL_BAUD);
     Serial.print("\n[weatherstationFSK_BMP085_DHT22_433rx]\n");
-    
-    // Initialise readings
-    for (int i = 0; i < numReadings; i++) {
-      tempReadings[i] = 0; 
-      presReadings[i] = 0;
-    }
     
     activityLed(0);
     rf12_initialize(NODE_ID, RF12_868MHZ, GROUP_ID); //reset RFM12B and initialize
@@ -279,35 +266,14 @@ void loop() {
       int32_t traw = psensor.measure(BMP085::TEMP);
       int32_t praw = psensor.measure(BMP085::PRES);
       
-      // Sensor averaging
-      // Subtract the oldest reading
-      tempTotal = tempTotal - tempReadings[readingsIndex];
-      presTotal = presTotal - presReadings[readingsIndex];
       // Get new values
-      psensor.calculate(tempReadings[readingsIndex], presReadings[readingsIndex]);
-      // Add new values to total
-      tempTotal = tempTotal + tempReadings[readingsIndex];
-      presTotal = presTotal + presReadings[readingsIndex];
-      //set next index
-      readingsIndex++;
-      if (readingsIndex >= numReadings) {
-        bmpValid = 1; // Set valid flag after first 5 readings
-        readingsIndex = 0;
-      }
+      psensor.calculate(payload.temp, payload.pres);
 
-      // Calc average
-      payload.temp = tempTotal / numReadings;
-      payload.pres = presTotal / numReadings;      
-
-#ifdef LOGDAT
-      if (bmpValid) {
-        Serial.print("BMP,");
-        Serial.print((double)payload.temp/10);
-        Serial.print(",");
-        Serial.print((double)payload.pres/100);
-        Serial.println();
-      }
-#endif
+      Serial.print("BMP,");
+      Serial.print((double)payload.temp/10);
+      Serial.print(",");
+      Serial.print((double)payload.pres/100);
+      Serial.println();
 
       float h = dht.readHumidity();
       float t = dht.readTemperature();
