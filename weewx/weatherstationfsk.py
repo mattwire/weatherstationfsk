@@ -257,10 +257,10 @@ class Station(object):
 # outHumidity: WS4,ID,C,<Humidity%>
 # outTemp: WS4,ID,<C>
 # pressure: BMP,C,<Pres,mBar?, abs/rel?> # station is mbar
-# windSpeed: WS4,ID,C,H,<WindVel(m/s)*3.6=km/h> # station is m/s, weewx wants km/h
-# windGust: WS4,ID,C,H,WVel,<WMax(m/s)*3.6=km/h # station is m/s, weewx wants km/h
+# windSpeed: WS4,ID,C,H,<WindVel(m/s)> # station is m/s
+# windGust: WS4,ID,C,H,WVel,<WMax(m/s)> # station is m/s
 # windDir: WS4,ID,C,H,WVel,WMax,WCompass,<WBearing(deg)>
-# rain: WS4,ID,C,H,WVel,WMax,WCompass,WBearing(deg),<Rain(mm)*0.1=cm> # station is mm, weewx wants cm
+# rain: WS4,ID,C,H,WVel,WMax,WCompass,WBearing(deg),<Rain(mm)> # station is mm
     def get_readings(self, packet, last_rain):
         """Get data from the station.
         """
@@ -344,13 +344,12 @@ class Station(object):
             packet['rainTotal'] = packet['rain']
             if packet['rain'] is not None and last_rain is not None:
                 if packet['rain'] < last_rain:
-                    pstr = '0x%04x' % packet['ptr'] if packet['ptr'] is not None else 'None'
                     if last_rain - packet['rain'] < rain_max * 0.5:
-                        logmsg(syslog.LOG_INFO, 'ignoring spurious rain counter decrement (%s): '
-                               'new: %s old: %s' % (pstr, packet['rain'], last_rain))
+                        logmsg(syslog.LOG_INFO, 'ignoring spurious rain counter decrement: '
+                               'new: %s old: %s' % (packet['rain'], last_rain))
                     else:
-                        logmsg(syslog.LOG_INFO, 'rain counter wraparound detected (%s): '
-                               'new: %s old: %s' % (pstr, packet['rain'], last_rain))
+                        logmsg(syslog.LOG_INFO, 'rain counter wraparound detected: '
+                               'new: %s old: %s' % (packet['rain'], last_rain))
                         total += rain_max
             packet['rain'] = weewx.wxformulas.calculate_rain(total, last_rain)
             if not packet['rain'] == None:
