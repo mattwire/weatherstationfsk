@@ -95,6 +95,9 @@ DRIVER_VERSION = '1.0'
 DEBUG_RAIN = 1
 DEBUG = 0
 
+# wrap value for rain counter
+rain_max = 0x10000
+
 def loader(config_dict, engine):
     return WeatherStationFSK(**config_dict[DRIVER_NAME])
 
