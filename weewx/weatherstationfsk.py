@@ -131,13 +131,13 @@ class WeatherStationFSKConfEditor(weewx.drivers.AbstractConfEditor):
 
     # How long to wait for a response from the station before giving up (in
     # seconds; must be greater than 2)
-    timeout = 5
+    timeout = 15
 
     # How long to wait before trying again (in seconds)
-    wait_before_retry = 1.2
+    wait_before_retry = 10
 
     # How many times to try before giving up:
-    max_tries = 4
+    max_tries = 3
     
     # The driver to use:
     driver = weewx.drivers.weatherstationfsk
